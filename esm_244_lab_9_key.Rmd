@@ -1,0 +1,384 @@
+---
+title: "ESM 244 Lab 9 Key"
+author: "Allison Horst"
+date: "March 3, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Today: 
+
+- Some network graphs
+- Sankey diagrams
+- Datapasta
+- Nice tables with gt
+- A code alarm clock
+- Some other useful things
+
+```{r, warning = FALSE, message = FALSE}
+
+library(beepr) # beep
+library(datapasta) # copy/paste
+library(tidyverse) 
+library(igraph) # network stuff
+library(multiplex) # network stuff
+library(ggraph) # More graph stuff
+library(gt) # tables
+library(ggalluvial) # Sankeys
+library(readxl)
+
+
+```
+
+
+###Part 1. Network analysis example (Les Miserables character connections)
+
+Get the data
+```{r}
+
+# Stored as a .gml file (graph modeling language) format supports network data
+# Use multiplex::read.gml()
+
+lm_df <- read.gml("lesmis.gml")
+
+# Convert to graph (igraph) with nodes & edges
+les_mis <- graph_from_data_frame(lm_df, directed = FALSE)
+beep(sound = 2)
+
+```
+
+Find some quantitative metrics:
+```{r}
+
+#Graph diameter:
+diameter(les_mis) # Smallest maximum distance (links)
+
+# Farthest vertices
+farthest_vertices(les_mis)
+
+
+```
+
+
+Plot it: 
+```{r}
+# Alternatively, get the graph data as igraph right away with igraph::read_graph()
+# les_mis <- read_graph("lesmis.gml", format = "gml")
+
+plot(les_mis,
+     vertex.color = "orange",
+     vertex.frame.color = "NA",
+     vertex.size = 5,
+     vertex.label.color = "black",
+     vertex.label.cex = 0.5,
+     vertex.label.dist = 2)
+```
+
+Other graphing options:
+ggraph
+ggnet2
+plot
++ more...
+
+A really cool resource for network plots in ggraph: <https://www.data-imaginist.com/2017/ggraph-introduction-layouts/>
+
+Want to do it more in the style of ggplot? Use ggraph. 
+```{r}
+
+# Then plot it
+ggraph(les_mis, layout = 'kk') +
+  geom_edge_link() +
+  geom_node_text(aes(label = name), size = 2, color = "white") +
+  theme_dark()
+
+# Or an arc graph: 
+ggraph(les_mis, layout = "linear") + 
+  geom_edge_arc(alpha = 0.8) + 
+  geom_node_text(aes(label = name), angle = 90, size = 2, hjust = 1) +
+  theme_graph()
+
+# Try layout = "circle", "tree"
+ggraph(les_mis, layout = "tree") +
+  geom_edge_fan(color = "gray90") + 
+  geom_node_text(aes(label = name), size = 2, color = "black", angle = 45) +
+  theme_void()
+
+```
+
+One like the layouts you're probably most used to seeing: 
+```{r, fig.height = 6, fig.width = 6}
+# And a circular form of linear arcs:
+
+ggraph(les_mis, layout = "linear", circular = TRUE) +
+  geom_edge_arc(alpha = 0.5) +
+  geom_node_point(aes(colour = name), show.legend = FALSE) +
+  geom_node_text(aes(label = name), size = 3, hjust = "outward") +
+  theme_void()
+  
+
+```
+
+###Part 2. Sankey diagrams showing flows
+
+Note: there are other options for creating Sankey diagrams. 
+Other packages to look into for Sankeys: alluvial, ggalluvial, NetworkD3
+
+Wikipedia: "Sankey diagrams are a specific type of flow diagram, in which the width of the arrows is shown proportionally to the flow quantity."
+
+Let's just get some simple data that I've created: 
+```{r}
+
+sdf <- read_csv("sankey_df.csv") %>% 
+  select(-X1)
+
+# OK, now I want to make a diagram of those flows...
+
+```
+
+Then plot it with ggalluvial: 
+A cool resource: <https://matthewdharris.com/2017/11/11/a-brief-diversion-into-static-alluvial-sankey-diagrams-in-r/>
+```{r}
+
+ggplot(sdf, aes(y = weight, axis1 = before, axis2 = after)) +
+  geom_alluvium(aes(fill = before, color = before), show.legend = FALSE, width = 1/5) +
+  geom_stratum(width = 1/5, color = "gray") +
+  geom_text(stat = "stratum", label.strata = TRUE) +
+  scale_fill_manual(values = c("purple","blue","green")) +
+  scale_color_manual(values = c("purple","blue","green")) +
+  scale_x_discrete(limits = c("Before", "After"), expand = c(0,0)) +
+  theme_minimal()
+
+```
+
+###Part 3. A few of my favorite things right now
+
+####3a. Let's make our own tibble! 
+
+A tibble is like a data frame with a little more functionality. From r4ds: "Tibbles are data frames, but they tweak some older behaviours to make life a little easier." Tibble and data frame are mostly used interchangeably. 
+
+```{r}
+
+my_tibble <- tribble(
+  ~allison, ~made, ~this, ~table,
+  1,"yes",0,10000,
+  2,"no",10, 20000,
+  3,"maybe",20, 5000,
+  4,"yes",15, 12000,
+  5,"no",25, 18000
+)
+
+# Then it just works like anything else...
+ggplot(my_tibble, aes(x = allison, y = table)) +
+  geom_point(aes(color = made), size = 10) +
+  scale_color_manual(values = c("red","orange","yellow")) +
+  theme_dark()
+
+```
+
+####3b. But now, datapasta! 
+
+Cool, so I can make my own data frames (tibbles) right here in R in a really intuitive way. But a lot of times there's data somewhere that we want in R, but it doesn't exist in a super useful format online. That's annoying. Luckily for us, there's *datapasta*!
+
+*datapasta* from Miles McBain: <https://github.com/MilesMcBain/datapasta>
+
+Once you install datapasta, then you should be able to find the datapasta addin (Tools > Addins > datapasta paste as tribble). 
+
+Go to page on "How to datapasta:" <https://cran.r-project.org/web/packages/datapasta/vignettes/how-to-datapasta.html>
+
+- copy table to clipboard
+- go to Tools -> Addins -> datapasta:: paste as tribble
+- ta da!
+
+- Want it to be even easier to use? Create a keyboard shortcut for addins! (mine is shift + command + t)...they might want to see how to create those R shortcuts? 
+
+```{r}
+
+weather_data <- tibble::tribble(
+                                ~X,          ~Location, ~Min, ~Max,
+                  "Partly cloudy.",         "Brisbane",  19L,  29L,
+                  "Partly cloudy.", "Brisbane Airport",  18L,  27L,
+                "Possible shower.",       "Beaudesert",  15L,  30L,
+                  "Partly cloudy.",        "Chermside",  17L,  29L,
+  "Shower or two. Possible storm.",           "Gatton",  15L,  32L,
+                "Possible shower.",          "Ipswich",  15L,  30L,
+                  "Partly cloudy.",    "Logan Central",  18L,  29L,
+                   "Mostly sunny.",            "Manly",  20L,  26L,
+                  "Partly cloudy.",    "Mount Gravatt",  17L,  28L,
+                "Possible shower.",            "Oxley",  17L,  30L,
+                  "Partly cloudy.",        "Redcliffe",  19L,  27L
+  )
+
+weather_data <- rename(weather_data, Condition = X)
+
+```
+
+You can also do this from things like an Excel file. Open the PesticideResidues.xls file on your computer. Select a subset of the cells (don't include headers for this example). Then use datapasta to create a tibble from it in R (remember, my shortcut is Control + Shift + t): 
+
+```{r}
+
+pest_sub <- tibble::tribble(
+          ~V1,                           ~V2,      ~V3,          ~V4,           ~V5,
+  "06-Jan-14",                        "KALE", 2140001L, "California",   "Riverside",
+  "06-Jan-14",                        "KALE", 2140001L, "California",   "Riverside",
+  "06-Jan-14",                        "KALE", 2140001L, "California",   "Riverside",
+  "06-Jan-14",  "STRAWBERRY (ALL OR UNSPEC)", 2140002L, "California", "Santa Maria",
+  "06-Jan-14",  "STRAWBERRY (ALL OR UNSPEC)", 2140002L, "California", "Santa Maria",
+  "06-Jan-14",  "STRAWBERRY (ALL OR UNSPEC)", 2140002L, "California", "Santa Maria",
+  "06-Jan-14",  "STRAWBERRY (ALL OR UNSPEC)", 2140002L, "California", "Santa Maria",
+  "06-Jan-14",  "STRAWBERRY (ALL OR UNSPEC)", 2140002L, "California", "Santa Maria",
+  "06-Jan-14",      "ORANGE (ALL OR UNSPEC)", 2140003L, "California",       "Arvin",
+  "06-Jan-14",      "ORANGE (ALL OR UNSPEC)", 2140003L, "California",       "Arvin",
+  "06-Jan-14",      "ORANGE (ALL OR UNSPEC)", 2140003L, "California",       "Arvin",
+  "06-Jan-14", "PEAR, ASIAN (ORIENTAL PEAR)", 2140004L, "California",   "Kingsburg",
+  "06-Jan-14", "PEAR, ASIAN (ORIENTAL PEAR)", 2140004L, "California",   "Kingsburg",
+  "06-Jan-14", "PEAR, ASIAN (ORIENTAL PEAR)", 2140004L, "California",   "Kingsburg",
+  "06-Jan-14",                     "SPINACH", 2140005L, "California",    "Highland",
+  "06-Jan-14",                     "SPINACH", 2140005L, "California",    "Highland",
+  "06-Jan-14",                     "SPINACH", 2140005L, "California",    "Highland"
+  )
+
+```
+
+####3c. Beautiful tables with gt
+
+The *gt* package by Rich Iannone is awesome (<https://github.com/rstudio/gt>). 
+
+Cool, so *gt* just works...
+```{r}
+weather_data %>% 
+  gt()
+```
+
+Or make it way better: 
+
+<https://gt.rstudio.com/reference/tab_options.html>
+
+```{r}
+weather_data %>% 
+  gt() %>% 
+  tab_header(
+    title = "An amazing title", # Add a title
+    subtitle = "(by Allison!)"# And a subtitle
+  ) %>%
+  fmt_passthrough( # Not sure about this but it works...
+    columns = vars(Location) # First column: supp (character)
+  ) %>% 
+  fmt_number(
+    columns = vars(Min), # Second column: mean_len (numeric)
+    decimals = 1 # With 4 decimal places
+  ) %>% 
+    fmt_number(
+    columns = vars(Max), # Third column: dose (numeric)
+    decimals = 1 # With 2 decimal places
+  ) %>% 
+  cols_move_to_start(
+    columns = vars(Location)
+  ) %>% 
+  data_color( # Update cell colors...
+    columns = vars(Min), # ...for mean_len column
+    colors = scales::col_numeric(
+      palette = c(
+        "darkblue", "blue"), # Overboard colors! 
+      domain = c(20,14) # Column scale endpoints
+  )
+  ) %>% 
+  data_color(
+    columns = vars(Max),
+    colors = scales::col_numeric(
+      palette = c(
+       "yellow", "orange", "red"),
+      domain = c(26,32)
+      )
+    ) %>% 
+  tab_options(
+    table.background.color = "purple",
+    heading.background.color = "black",
+    column_labels.background.color = "gray",
+    heading.border.bottom.color = "yellow",
+    column_labels.font.size = 10
+  )
+
+# And see https://gt.rstudio.com/reference/tab_options.html for mor overall formatting!
+```
+
+See more examples here: 
+<https://github.com/allisonhorst/gt-awesome-tables>
+
+
+###3d. Reading in straight from a URL
+
+Google then direct to get to the UCI Machine Learning data for auto-mpg. Then read it in via the URL. 
+Make sure to ask yourself: why is this convenient but risky? 
+
+- Google: U.S. Nuclear Power Reactor Plant Status 
+- From: data.gov
+- Then click on 'text file' under Downloads and Resources
+- Copy URL
+
+Note: don't want to have reading from URL in document that's knitting (requires connection)...? Depends.
+```{r}
+# nuclear <- read_delim("https://www.nrc.gov/reading-rm/doc-collections/event-status/reactor-status/PowerReactorStatusForLast365Days.txt", delim = "|", col_names = TRUE)
+
+# Because you always want a version of what you were working with, I recommend writing that to a csv (or a text file, or whatever)
+
+# write_csv(nuclear, "nuclear.csv")
+
+```
+
+But that also works if it's in your working directory...
+
+###3e. Reading in Excel files (and skipping top rows metadata)
+
+Easy to read in Excel files (respecting the classes):
+```{r}
+
+pesticides <- read_xls("PesticideResidues.xls")
+
+# Dang, there are two extra rows with information in them. Bummer. But: 
+
+pest2 <- read_xls("PesticideResidues.xls", skip = 2, col_names = TRUE) # Ta da! 
+
+pest <- pest2 %>% 
+  janitor::clean_names()
+
+```
+
+Let's clean that up, do some wrangling, and a cool visualization to close out 244 lab for the year
+
+Some wrangling of the pesticide data: 
+
+```{r}
+
+crops <- pest %>% 
+  filter(commodity == "KALE",!is.na(grower_city)) %>% 
+  separate(grower_city, c("grow_city","grow_state"), sep = ",") %>% 
+  separate(collection_site_city, c("market_city","market_state"), sep = ",") %>% 
+  group_by(organic_commodity, grow_city, market_city) %>% 
+  tally()
+
+```
+
+Then a Sankey diagram! 
+```{r}
+
+ggplot(crops, aes(y = n, axis1 = organic_commodity, axis2 = grow_city, axis3 = market_city)) +
+  geom_alluvium(aes(fill = organic_commodity, color = organic_commodity), show.legend = FALSE, width = 1/5) +
+  geom_stratum(width = 1/5, color = "gray") +
+  geom_text(stat = "stratum", label.strata = TRUE, size = 2) +
+  scale_fill_manual(values = c("purple","blue")) +
+  scale_color_manual(values = c("purple","blue")) +
+  scale_x_discrete(limits = c("status", "grown","market"), expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme_bw()
+
+```
+
+Other things to show during this lab: 
+
+- Comment out multiple lines with Command + Shift + c
+- Selecting a whole line or parts: Command + Shift + arrow
+- Just shift arrow for by letter
+
