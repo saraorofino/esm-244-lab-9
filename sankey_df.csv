@@ -1,0 +1,10 @@
+"","before","after","weight"
+"1","hate","hate",20
+"2","hate","neutral",30
+"3","hate","like",40
+"4","neutral","hate",5
+"5","neutral","neutral",18
+"6","neutral","like",20
+"7","like","hate",2
+"8","like","like",12
+"9","like","neutral",19
