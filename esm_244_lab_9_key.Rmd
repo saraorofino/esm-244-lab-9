@@ -20,15 +20,19 @@ Today:
 
 ```{r, warning = FALSE, message = FALSE}
 
-library(beepr) # beep
-library(datapasta) # copy/paste
+library(beepr) # beep (on CRAN)
+library(datapasta) # copy/paste (on CRAN)
 library(tidyverse) 
-library(igraph) # network stuff
-library(multiplex) # network stuff
-library(ggraph) # More graph stuff
-library(gt) # tables
-library(ggalluvial) # Sankeys
-library(readxl)
+library(igraph) # network stuff (on CRAN)
+library(multiplex) # network stuff (on CRAN)
+library(ggraph) # More graph stuff (on CRAN)
+library(gt) # tables (get development version!!!)
+# remotes::install_github("rstudio/gt")
+library(ggalluvial) # Sankeys (on CRAN)
+library(readxl) # Get .xls (on CRAN)
+library(praise) # Praaaise! 
+
+# Note: may need to update dependencies (I usually choose yes to all...)
 
 
 ```
@@ -375,6 +379,12 @@ ggplot(crops, aes(y = n, axis1 = organic_commodity, axis2 = grow_city, axis3 = m
   theme_bw()
 
 ```
+
+
+```{r}
+
+```
+
 
 Other things to show during this lab: 
 
