@@ -20,3 +20,266 @@ library(readxl) # Get .xls (on CRAN)
 library(praise) # Praaaise! 
 ```
 
+###Part 1. Network analysis examples - graphy theory (Les Mis character connections)
+
+Get the data:
+
+```{r}
+
+lm_df <- read.gml("lesmis.gml")
+
+#directed - not a direction in the graph theory; characters are connected but not in a directed way 
+
+les_mis <- graph_from_data_frame(lm_df, directed = FALSE)  
+beep(sound = 3) #intended to be an alarm for code chunks that take a long time to run
+
+praise() # Give's awesome random encouragement to you and your group! 
+
+```
+
+
+Find some quantitative metrics:
+```{r}
+
+#Graph diameter:
+diameter(les_mis) # Smallest maximum distance (links)
+
+# Farthest vertices
+farthest_vertices(les_mis)
+
+
+```
+
+
+Plot it: 
+```{r}
+# Alternatively, get the graph data as igraph right away with igraph::read_graph()
+# les_mis <- read_graph("lesmis.gml", format = "gml")
+
+plot(les_mis,
+     vertex.color = "orange",
+     vertex.frame.color = "NA",
+     vertex.size = 5,
+     vertex.label.color = "black",
+     vertex.label.cex = 0.5,
+     vertex.label.dist = 2)
+```
+
+A little more customized graphs using gg formats:  
+
+```{r}
+
+# geom_edge_links web format
+# geom_node_text to show the nodes 
+
+ggraph(les_mis, layout = "kk") +
+  geom_edge_link() +
+  geom_node_text(aes(label = name), size = 2, color = "white") +
+  theme_dark()
+
+# linear layout of characters with the half circle arcs connecting characters 
+
+ggraph(les_mis, layout = "linear") +
+  geom_edge_arc(alpha = 0.8) +
+  geom_node_text(aes(label = name), angle = 90, size = 2, hjust = 1) +
+  theme_graph()
+
+# plotting chacacters as linear data coerced into levels
+
+ggraph(les_mis, layout = "tree") +
+  geom_edge_fan(color = "purple") +
+  geom_node_text(aes(label = name), size = 2, color = "blue", angle = 45) +
+  theme_void()
+
+beep(3)
+  
+  
+
+  
+```
+
+Or the ones that we're most used to seeing:  
+
+```{r}
+
+ggraph(les_mis, layout = "linear", circular = TRUE) +
+  geom_edge_arc(alpha = 0.5) +
+  geom_node_point(aes(color = name), show.legend = FALSE) +
+  geom_node_text(aes(label = name), size = 3, hjust = "outward") +
+  theme_void()
+
+# Note you can show corrrelation using hierarchial clustering (correlation matrix - calculated when did dendrograms)
+
+```
+
+###Part 2. Sankey Diagrams  
+
+- alluvial
+- ggalluvial 
+- NetworkD3
+- ggforce (in ggplot - geom_parallel?)
+
+```{r}
+
+
+sdf <- read_csv("sankey_df.csv") %>% 
+  select(-X1)
+
+
+```
+
+
+```{r}
+
+ggplot(sdf, aes(y=weight, axis1 = before, axis2 = after)) +
+  geom_alluvium(aes(fill = before, color = before), show.legend = FALSE) +
+  geom_stratum(width = 1/5, color = "gray") +
+  geom_text(stat = "stratum", label.strata = TRUE) +
+  scale_fill_manual(values = c("purple","blue","green")) +
+  scale_color_manual(values = c("purple","blue","green")) +
+  scale_x_discrete(limits = c("Before", "After"), expand = c(0,0)) +
+  theme_minimal()
+
+
+```
+
+###Part 3. A few of Allison's favorite things right now...
+
+####3a. Creating your own tibbles:  
+
+A tibble is like a data frame with a little more functionality. From r4ds (R for Data Science): "Tibbles are data frames, but they tweak some older behaviours to make life a little easier." Tibble and data frame are mostly used interchangeably.     
+
+```{r}
+
+# Create little data frames from scratch - good for testing out new code!
+# In the first line use ~ to identify each of the column names
+# The next lines will be all your row values (remember the number of values should match the number of columns)
+
+my_tibble <- tribble(
+  ~sara, ~made, ~this, ~awesomething,
+  1, "yes", 0, 10000,
+  2, "no", 4, 50000,
+  3, "maybe", 10, 40000,
+  4, "nah", 7, 35000
+)
+
+# And it works just like anything else:
+ggplot(my_tibble, aes(x = sara, y = awesomething)) +
+  geom_point(aes(color = made), size = 10) +
+  scale_color_manual(values = c("red","orange","yellow", "blue")) +
+  theme_dark()
+```
+
+Check out Jenny Bryan's awesome package 'reprex' - to make reproducible examples 
+
+
+####3b. datapasta!
+
+Can I copy and paste data from outside sources and have R store it as a data frame?   
+
+```{r}
+# tools --> addins --> browse addins --> paste as tribble 
+
+
+weather_data <- tibble::tribble(
+                                                  ~X,          ~Location, ~Min, ~Max,
+                                    "Partly cloudy.",         "Brisbane",  19L,  29L,
+                                    "Partly cloudy.", "Brisbane Airport",  18L,  27L,
+                                  "Possible shower.",       "Beaudesert",  15L,  30L,
+                                    "Partly cloudy.",        "Chermside",  17L,  29L,
+                    "Shower or two. Possible storm.",           "Gatton",  15L,  32L,
+                                  "Possible shower.",          "Ipswich",  15L,  30L,
+                                    "Partly cloudy.",    "Logan Central",  18L,  29L,
+                                     "Mostly sunny.",            "Manly",  20L,  26L,
+                                    "Partly cloudy.",    "Mount Gravatt",  17L,  28L,
+                                  "Possible shower.",            "Oxley",  17L,  30L,
+                                    "Partly cloudy.",        "Redcliffe",  19L,  27L
+                    )
+
+weather_data <- rename(weather_data, Condition = X)
+
+```
+
+
+####3c. Beautiful customized tables with 'gt'
+
+```{r}
+weather_data %>% 
+  gt() %>% 
+  tab_header(
+    title = "Check Out My Awesome Table",
+    subtitle = "That's rad"
+  ) %>% 
+  fmt_number(
+    columns = vars(Min),
+    decimals = 2
+  ) %>% 
+  cols_move_to_start(
+    columns = vars(Location)
+  ) %>% 
+  data_color(
+    columns = vars(Min),
+    colors = scales::col_numeric(
+      palette = c("darkblue", "blue"),
+      domain = c(14,20)
+    )
+  ) %>% 
+  tab_options(
+    table.background.color = "grey",
+    heading.background.color = "black",
+    column_labels.background.color = "green"
+  )
+
+# Check out the spanner column label function to add a bar over the variables (for shiny)
+
+```
+
+####3d. Reading in straight from a URL  
+
+```{r}
+# use read_delim and have to specify the type of deliminator (in this case vertical bars |, but could be comma)
+
+nuclear <- read_delim("https://www.nrc.gov/reading-rm/doc-collections/event-status/reactor-status/PowerReactorStatusForLast365Days.txt", delim = "|", col_names = TRUE)
+
+
+```
+
+```{r}
+
+ # Read in excel files 
+
+pesticides <- read_xls("PesticideResidues.xls")
+
+# Specify if you want to skip rows using skip = , useful if metadata is present in the dataset, specify if the first column after the skip will be the column headers using col_names = TRUE
+
+pest2 <- read_xls("PesticideResidues.xls", skip = 2, col_names = TRUE)
+
+pest <- pest2 %>% 
+  janitor::clean_names()
+```
+
+Round 244 Labs with some data wrangling and visualization:  
+
+```{r}
+# Use separate() to get Oakland, Oakland,CA and Oakland, California to all show city as just Oakland
+
+crops <- pest %>% 
+  filter(commodity == "KALE", !is.na(grower_city)) %>% 
+  separate(grower_city, c("grow_city", "grow_state"), sep = ",") %>% 
+  separate(collection_site_city, 
+           c("market_city", "market_state"), sep = ",") %>% 
+  group_by(organic_commodity, grow_city, market_city) %>% 
+  tally()
+
+# Now make a Sankey Diagram
+
+ggplot(crops, aes(y = n, axis1 = organic_commodity, axis2 = grow_city, axis3 = market_city)) +
+  geom_alluvium(aes(fill = organic_commodity, color = organic_commodity),
+                show.legend = FALSE) +
+  geom_stratum() +
+  geom_text(stat = "stratum", label.strata = TRUE, size = 2)
+  
+praise()
+```
+
+
